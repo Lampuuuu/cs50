@@ -1,16 +1,19 @@
 #include "helpers.h"
 #include <math.h>
-#include <stdio.h>
 
 // Convert image to grayscale
 int rgbavg(int a, int b, int c);
 void grayscale(int height, int width, RGBTRIPLE image[height][width])
 {
+    //going through each pixel
     for (int i = 0, h = height; i < h; i++)
     {
         for (int j = 0, w = width; j < w; j++)
         {
+            //averaging out every pixel via function below
             int rgbiavg = rgbavg(image[i][j].rgbtRed, image[i][j].rgbtGreen, image[i][j].rgbtBlue);
+
+            //adding the averaged (grey) value to the output
             image[i][j].rgbtRed = rgbiavg;
             image[i][j].rgbtGreen = rgbiavg;
             image[i][j].rgbtBlue = rgbiavg;
@@ -18,32 +21,35 @@ void grayscale(int height, int width, RGBTRIPLE image[height][width])
     }
     return;
 }
+
+// funcion takes in 3 ints, converts them to floats to allow rounding and then divides them by three
 int rgbavg(int a, int b, int c)
 {
     float aa = a;
     float bb = b;
     float cc = c;
-    int avg = round((aa + bb + cc)/3);
+    int avg = round((aa + bb + cc) / 3);
     return avg;
 }
 
 
 
-
 // Reflect image horizontally
-// need this to take each pixel from one end to the other end.
-// shoud work with a swap function but somehow doesn
 void swappixels(RGBTRIPLE *a, RGBTRIPLE *b);
 void reflect(int height, int width, RGBTRIPLE image[height][width])
 {
-      for (int i = 0, h = height; i < h; i++)
+    //going through half of the pixels
+    for (int i = 0, h = height; i < h; i++)
     {
-        for (int j = 0, w = width; j < w/2; j++)
+        for (int j = 0, w = width; j < w / 2; j++)
         {
+            //swapping current pixel with corresponding mirrored pixel via funct below.
             swappixels(&image[i][j], &image[i][width - j - 1]);
         }
     }
+    return;
 }
+//swaps to RGBTRIPLE values, by taking in their adresses and repointing them.
 void swappixels(RGBTRIPLE *a, RGBTRIPLE *b)
 {
     RGBTRIPLE tmp = *a;
@@ -53,19 +59,11 @@ void swappixels(RGBTRIPLE *a, RGBTRIPLE *b)
 
 
 
-
-
-
-
 // Blur image
-
-// function with i and j as inputs
-
 void floorceil(int i, int max, int *ifloor, int *iceil);
-
 void blur(int height, int width, RGBTRIPLE image[height][width])
 {
-    //collecting the initial values of th picture
+    //copying the original image into the <oldvalues>-array
     RGBTRIPLE oldvalues[height][width];
     for (int i = 0; i < height; i++)
     {
@@ -74,7 +72,7 @@ void blur(int height, int width, RGBTRIPLE image[height][width])
             oldvalues[i][j] = image[i][j];
         }
     }
-    //setting up variables
+    //initialize variables
     int afloor, aceil;
     int bfloor, bceil;
     double rsum, gsum, bsum;
@@ -85,43 +83,55 @@ void blur(int height, int width, RGBTRIPLE image[height][width])
     {
         for (int j = 0, w = width; j < w; j++)
         {
-            // calculating the floor and ceiling for the blurwindow
+            //determining the size of the blur grid via function below.
             floorceil(i, height - 1, &afloor, &aceil);
             floorceil(j, width - 1, &bfloor, &bceil);
 
-            //more variables, that need to be ==0 for each pixel
+            //initialize counting variable to divide by later
             int cc = 0;
+
+            //zero down sum variables
             rsum = gsum = bsum = 0;
 
-            // going through the 3x3 or less window
+            //create array around current pixel, size is determined by <floorceil>
             for (int a = afloor; a <= aceil; a++)
             {
                 for (int b = bfloor; b <= bceil; b++)
                 {
-                    //collecting and summing up the initial values
+                    //get the color values from the copied array
                     rnow = oldvalues[a][b].rgbtRed;
                     gnow = oldvalues[a][b].rgbtGreen;
                     bnow = oldvalues[a][b].rgbtBlue;
+
+                    // add them all up
                     rsum += rnow;
                     gsum += gnow;
                     bsum += bnow;
-                    cc += 1;
 
+                    //increase counter by 1(since the size of the grid varies)
+                    cc += 1;
                 }
             }
+
+            //get the averages by dividing by the counter
             int redavg = round(rsum / cc);
             int greenavg = round(gsum / cc);
             int blueavg = round(bsum / cc);
+
+            //put the averages into the output.
             image[i][j].rgbtRed = redavg;
             image[i][j].rgbtGreen = greenavg;
             image[i][j].rgbtBlue = blueavg;
-
         }
     }
     return;
 }
+
+//determines minimum and maximum values for the blur grid, by taking
+//the current value, the max falue and the adresses of floor and ceiling variables
 void floorceil(int i, int max, int *ifloor, int *iceil)
 {
+    //if i matches 0 or the max value, the floor/ceil value is changed.
     if (i == 0)
     {
         *ifloor = 0;
@@ -142,110 +152,106 @@ void floorceil(int i, int max, int *ifloor, int *iceil)
 }
 
 
+
+
 // Detect edges
 int lightcheck(int G);
-
 void edges(int height, int width, RGBTRIPLE image[height][width])
 {
-    printf("original:\n%i %i\n%i %i\n", image[0][0].rgbtRed, image[0][1].rgbtRed, image[1][0].rgbtRed, image[1][1].rgbtRed );
-    // setting up sobel operators
-    int Gxarr[3][3] = {
+    // arrays for Gx and Gy
+    int Gxarr[3][3] =
+    {
         {-1, 0, 1},
         {-2, 0, 2},
         {-1, 0, 1}
     };
-    int Gyarr[3][3] = {
+
+    int Gyarr[3][3] =
+    {
         {-1, -2, -1},
         { 0,  0,  0},
         { 1,  2,  1}
     };
 
-    // copying the old values into new array with 2 more rows and cols
+
+    //RGBTRIPLE array with 2 more rows and columns
+    //Border rows and cols are black
     RGBTRIPLE oldvalues[height + 2][width + 2];
-    for (int i = 1; i < height + 1; i++)
+    for (int i = 0; i < height + 2; i++)
     {
-        for (int j = 1; j < width + 1; j++)
+        for (int j = 0; j < width + 2; j++)
         {
-            oldvalues[i][j] = image[i - 1][j - 1];
+            //if condition for the borders
+            if (i == 0 || i == height + 1 || j == 0 || j == width + 1)
+            {
+                oldvalues[i][j].rgbtRed = 0;
+                oldvalues[i][j].rgbtGreen = 0;
+                oldvalues[i][j].rgbtBlue = 0;
+            }
+            else
+            {
+                //copy the image values in the middle of the array.
+                oldvalues[i][j].rgbtRed = image[i - 1][j - 1].rgbtRed;
+                oldvalues[i][j].rgbtGreen = image[i - 1][j - 1].rgbtGreen;
+                oldvalues[i][j].rgbtBlue = image[i - 1][j - 1].rgbtBlue;
+            }
         }
     }
 
-    //image alignment controlled and works as intended
-
-
-    //initializing Gx and Gy Variables for each color
+    //initialize variables, needed later
     double GxRed, GxGrn, GxBlu;
     double GyRed, GyGrn, GyBlu;
 
-    // each pixel in the grid
+    // double for loop to go through every pixel
     for (int i = 0; i < height; i++)
     {
         for (int j = 0; j < width; j++)
         {
-            // Zeroing down the counting values each pixel
+            //zeroing down variables, that need to be == 0 for every pixel
             GxRed = GxGrn = GxBlu = GyRed = GyGrn = GyBlu = 0;
-            if (i == 0 && j == 0)
-            {
-                printf("in Schleife:\n %i %i\n %i %i\n", image[i][j].rgbtRed, image[i][j + 1].rgbtRed, image[i + 1][j].rgbtRed, image[i + 1][j + 1].rgbtRed);
-            }
-            // creating the 9x9 grid
+
+            //double for loop for the 9x9 grid around the current pixel
             for (int a = 0; a < 3; a++)
             {
-                 for (int b = 0; b < 3; b++)
+                for (int b = 0; b < 3; b++)
                 {
-
-                    // getting each old value
+                    // getting the orinal values into a variable representing the current grid value
                     int ovred = oldvalues[i + a][j + b].rgbtRed;
                     int ovgrn = oldvalues[i + a][j + b].rgbtGreen;
                     int ovblu = oldvalues[i + a][j + b].rgbtBlue;
 
-                    // Gx Values
+                    //summing up the original values multiplied with the corresponding value in the
+                    //<Gxarr> and <Gyarr> creating 2 values for each color
                     GxRed += ovred * Gxarr[a][b];
                     GxGrn += ovgrn * Gxarr[a][b];
                     GxBlu += ovblu * Gxarr[a][b];
 
-                    //Gy Values
                     GyRed += ovred * Gyarr[a][b];
                     GyGrn += ovgrn * Gyarr[a][b];
                     GyBlu += ovblu * Gyarr[a][b];
-
-                    if (i == 0 && j == 0)
-                    {
-
-                        printf("a: %i b: %i \n", a, b);
-                        printf("ovred: %i\n", ovred);
-                        printf("Gxarr[a][b]: %i, Gyarr[a][b]: %i\n", Gxarr[a][b], Gyarr[a][b]);
-                        printf("GxRed: %f, GyRed: %f\n", GxRed, GyRed);
-                    }
-
                 }
             }
+
+            //merging the X and Y value with given formula and rounding it
             int GRed = round(sqrt(pow(GxRed, 2) + pow(GyRed, 2)));
             int GGrn = round(sqrt(pow(GxGrn, 2) + pow(GyGrn, 2)));
             int GBlu = round(sqrt(pow(GxBlu, 2) + pow(GyBlu, 2)));
 
-            //check if G-Values are greater than 255
+            //check if merged value > 255 via <lightcheck>
             GRed = lightcheck(GRed);
             GGrn = lightcheck(GGrn);
             GBlu = lightcheck(GBlu);
 
-            if (i == 0 && j == 0)
-            {
-                printf("GRed = %i\n", GRed);
-            }
+            //add value to corresponding spot in the output grid.
             image[i][j].rgbtRed = GRed;
             image[i][j].rgbtGreen = GGrn;
             image[i][j].rgbtBlue = GBlu;
-
         }
-        //doesn't compute the final values correctly. white edges at the top and on the left.
-
     }
-
-
     return;
 }
 
+// checks if value is > 255 and tunes it down to 255.
 int lightcheck(int G)
 {
     if (G > 255)
