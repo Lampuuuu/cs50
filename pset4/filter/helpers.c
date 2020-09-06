@@ -31,7 +31,8 @@ int rgbavg(int a, int b, int c)
 
 
 // Reflect image horizontally
-
+// need this to take each pixel from one end to the other end.
+// shoud work with a swap function but somehow doesn
 void swappixels(RGBTRIPLE *a, RGBTRIPLE *b);
 void reflect(int height, int width, RGBTRIPLE image[height][width])
 {
@@ -146,9 +147,18 @@ int lightcheck(int G);
 
 void edges(int height, int width, RGBTRIPLE image[height][width])
 {
+    printf("original:\n%i %i\n%i %i\n", image[0][0].rgbtRed, image[0][1].rgbtRed, image[1][0].rgbtRed, image[1][1].rgbtRed );
     // setting up sobel operators
-    int Gxarr[9] = {-1, 0, 1, -2, 0, 2, -1, 0, 1};
-    int Gyarr[9] = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
+    int Gxarr[3][3] = {
+        {-1, 0, 1},
+        {-2, 0, 2},
+        {-1, 0, 1}
+    };
+    int Gyarr[3][3] = {
+        {-1, -2, -1},
+        { 0,  0,  0},
+        { 1,  2,  1}
+    };
 
     // copying the old values into new array with 2 more rows and cols
     RGBTRIPLE oldvalues[height + 2][width + 2];
@@ -156,9 +166,12 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
     {
         for (int j = 1; j < width + 1; j++)
         {
-            oldvalues[i][j] = image[i][j];
+            oldvalues[i][j] = image[i - 1][j - 1];
         }
     }
+
+    //image alignment controlled and works as intended
+
 
     //initializing Gx and Gy Variables for each color
     double GxRed, GxGrn, GxBlu;
@@ -171,28 +184,39 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
         {
             // Zeroing down the counting values each pixel
             GxRed = GxGrn = GxBlu = GyRed = GyGrn = GyBlu = 0;
-            int cc = 0;
-            // creating the 9x9 grid
-            for (int a = -1; a < 2; a++)
+            if (i == 0 && j == 0)
             {
-                 for (int b = -1; b < 2; b++)
+                printf("in Schleife:\n %i %i\n %i %i\n", image[i][j].rgbtRed, image[i][j + 1].rgbtRed, image[i + 1][j].rgbtRed, image[i + 1][j + 1].rgbtRed);
+            }
+            // creating the 9x9 grid
+            for (int a = 0; a < 3; a++)
+            {
+                 for (int b = 0; b < 3; b++)
                 {
 
                     // getting each old value
-                    int ovred = oldvalues[i + 1 + a][j + 1 + b].rgbtRed;
-                    int ovgrn = oldvalues[i + 1 + a][j + 1 + b].rgbtGreen;
-                    int ovblu = oldvalues[i + 1 + a][j + 1 + b].rgbtBlue;
+                    int ovred = oldvalues[i + a][j + b].rgbtRed;
+                    int ovgrn = oldvalues[i + a][j + b].rgbtGreen;
+                    int ovblu = oldvalues[i + a][j + b].rgbtBlue;
 
                     // Gx Values
-                    GxRed += ovred * Gxarr[cc];
-                    GxGrn += ovgrn * Gxarr[cc];
-                    GxBlu += ovblu * Gxarr[cc];
+                    GxRed += ovred * Gxarr[a][b];
+                    GxGrn += ovgrn * Gxarr[a][b];
+                    GxBlu += ovblu * Gxarr[a][b];
 
                     //Gy Values
-                    GyRed += ovred * Gyarr[cc];
-                    GyGrn += ovgrn * Gyarr[cc];
-                    GyBlu += ovblu * Gyarr[cc];
-                    cc ++;
+                    GyRed += ovred * Gyarr[a][b];
+                    GyGrn += ovgrn * Gyarr[a][b];
+                    GyBlu += ovblu * Gyarr[a][b];
+
+                    if (i == 0 && j == 0)
+                    {
+
+                        printf("a: %i b: %i \n", a, b);
+                        printf("ovred: %i\n", ovred);
+                        printf("Gxarr[a][b]: %i, Gyarr[a][b]: %i\n", Gxarr[a][b], Gyarr[a][b]);
+                        printf("GxRed: %f, GyRed: %f\n", GxRed, GyRed);
+                    }
 
                 }
             }
@@ -205,12 +229,19 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
             GGrn = lightcheck(GGrn);
             GBlu = lightcheck(GBlu);
 
+            if (i == 0 && j == 0)
+            {
+                printf("GRed = %i\n", GRed);
+            }
             image[i][j].rgbtRed = GRed;
             image[i][j].rgbtGreen = GGrn;
             image[i][j].rgbtBlue = GBlu;
+
         }
+        //doesn't compute the final values correctly. white edges at the top and on the left.
 
     }
+
 
     return;
 }
