@@ -31,8 +31,7 @@ int rgbavg(int a, int b, int c)
 
 
 // Reflect image horizontally
-// need this to take each pixel from one end to the other end.
-// shoud work with a swap function but somehow doesn
+
 void swappixels(RGBTRIPLE *a, RGBTRIPLE *b);
 void reflect(int height, int width, RGBTRIPLE image[height][width])
 {
